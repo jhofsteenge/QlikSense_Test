@@ -19,7 +19,8 @@ SET DayNames='ma;di;wo;do;vr;za;zo';
 SET LongDayNames='maandag;dinsdag;woensdag;donderdag;vrijdag;zaterdag;zondag';
 SET NumericalAbbreviation='3:k;6:M;9:G;12:T;15:P;18:E;21:Z;24:Y;-3:m;-6:μ;-9:n;-12:p;-15:f;-18:a;-21:z;-24:y';
 
-// Klein testje
+// Test wijziging 3
+
 Hierarchy(NodeID, ParentID, NodeName, ParentName, NodeName, PathName, '\', Depth) LOAD * inline [
   NodeID, ParentID, NodeName
   1, 4, London
@@ -31,23 +32,21 @@ Hierarchy(NodeID, ParentID, NodeName, ParentName, NodeName, PathName, '\', Depth
 
 // Nu nog maar iets toevoegen voor Test 2
  LOAD * INLINE [
-
 CONTID,CONTINENT,Latitude,Longitude
-
 1,Europe,54.525961,15.255119
-
 2,North America,54.525961,-105.255119
-
 3,South America,-8.783195,-55.491477
-
 4,Asia,34.047863,100.619655
-
 5,Africa,-8.783195,34.508523
-
 6,Oceania,-27,133
-
 7,Micronesia,6.887351,158.215072
-
 ];
 
 // Hier nog maar weet een regel toevoegen - TEST 3
+
+
+
+
+
+
+// Test
