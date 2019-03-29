@@ -1,4 +1,5 @@
-
+// Een kleine change toevoegen vanaf mijn eigen laptop en
+// niet de VM
 SET ThousandSep='.';
 SET DecimalSep=',';
 SET MoneyThousandSep='.';
