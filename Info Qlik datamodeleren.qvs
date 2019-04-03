@@ -91,7 +91,7 @@ Sub Opdracht_2
                 "Einddatum Contract")			                            as	Eind_datum
     FROM
         [$(vPath)/2. Van Dimensie naar Feit/Van_Dimensie_Naar_Feit.xlsx](ooxml, embedded labels, table is Blad1)
-    ;
+    ;  
 
     // <-----------------------------------------------------------------> 
 End Sub
