@@ -177,35 +177,35 @@ End Sub
 //	<--------------------------------------------------------------> || <-------------------------------------------------------------->
 Sub Contracten
 
-//	-- Opstellen contract tabel met een combi sleutel naar rooster toe
-Contracten_TEMP:
-LOAD
-    Personeelsnummer												as _Medewerker.KEY,
-    ID																as _Contract.KEY,
-    Ingangsdatum													as [Contract - Startdatum],
-    Einddatum														as [Contract - Einddatum],
-    Soort															as [Contract - soort],
-    Soort															as _Rooster.KEY
-FROM 
-	[lib://Datamodelleren/99. Eindopdracht/99.  Eindopdracht.xlsx](ooxml, embedded labels, table is Contract);
-    
-LEFT JOIN(Contracten_TEMP)
-	LOAD
-    	_Rooster.KEY,
-        [Rooster - Weekdag]											as [Contract - Weekdag],
-        [Rooster - Uren per Weekdag]								as [Contract - Uren per dag]
-    RESIDENT
-    	Rooster_TEMP;
-        
-Contracten_TEMP_2:
- 	NoConcatenate
+    //	-- Opstellen contract tabel met een combi sleutel naar rooster toe
+    Contracten_TEMP:
     LOAD
-    	_Medewerker.KEY & '#' & [Contract - Weekdag]
-        															as _FEIT_RoosterUren.KEY,
-        [Contract - Uren per dag]
-    RESIDENT
-		Contracten_TEMP
-    ;
+        Personeelsnummer												as _Medewerker.KEY,
+        ID																as _Contract.KEY,
+        Ingangsdatum													as [Contract - Startdatum],
+        Einddatum														as [Contract - Einddatum],
+        Soort															as [Contract - soort],
+        Soort															as _Rooster.KEY
+    FROM 
+        [lib://Datamodelleren/99. Eindopdracht/99.  Eindopdracht.xlsx](ooxml, embedded labels, table is Contract);
+        
+    LEFT JOIN(Contracten_TEMP)
+        LOAD
+            _Rooster.KEY,
+            [Rooster - Weekdag]											as [Contract - Weekdag],
+            [Rooster - Uren per Weekdag]								as [Contract - Uren per dag]
+        RESIDENT
+            Rooster_TEMP;
+            
+    Contracten_TEMP_2:
+        NoConcatenate
+        LOAD
+            _Medewerker.KEY & '#' & [Contract - Weekdag]
+                                                                        as _FEIT_RoosterUren.KEY,
+            [Contract - Uren per dag]
+        RESIDENT
+            Contracten_TEMP
+        ;
 
 End Sub    
 //	<--------------------------------------------------------------> || <-------------------------------------------------------------->
@@ -277,6 +277,7 @@ End Sub
     CALL Kalender
     CALL Dienstverband
     CALL Rooster
+    CALL Contracten
     CALL Feit
 
     // Ter controle wordt er een exit script uitgevoerd.
