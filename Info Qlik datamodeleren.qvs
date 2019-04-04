@@ -1,5 +1,6 @@
 // Begin script om te zien hoe makkelijk versie beheer werkt en daarnaast een aantal voorbeelden te geven van datamodelleren binnen Qlik
 //	<--------------------------------------------------------------> || <-------------------------------------------------------------->
+
 SET ThousandSep='.';
 SET DecimalSep=',';
 SET MoneyThousandSep='.';
@@ -12,147 +13,170 @@ SET FirstWeekDay=0;
 SET BrokenWeeks=0;
 SET ReferenceDay=4;
 SET FirstMonthOfYear=1;
+
 //	<--------------------------------------------------------------> || <-------------------------------------------------------------->
-//	-- Mapping load tabellen opstellen
-ML_Geslacht:
-MAPPING
-LOAD
-    Code,
-    Omschrijving
-FROM 
-	[lib://Datamodelleren/99. Eindopdracht/99.  Eindopdracht.xlsx](ooxml, embedded labels, table is Omschr_Geslacht);
+Sub Mapping_Loads
+
+    //	-- Mapping load tabellen opstellen
+    ML_Geslacht:
+    MAPPING
+    LOAD
+        Code,
+        Omschrijving
+    FROM 
+        [lib://Datamodelleren/99. Eindopdracht/99.  Eindopdracht.xlsx](ooxml, embedded labels, table is Omschr_Geslacht)
+    ;
 
 
-ML_Burg_Staat:
-MAPPING
-LOAD
-    BS_Code,
-    BS
-FROM 
-	[lib://Datamodelleren/99. Eindopdracht/99.  Eindopdracht.xlsx](ooxml, embedded labels, table is Omschr_Burg_Staat);
+    ML_Burg_Staat:
+    MAPPING
+    LOAD
+        BS_Code,
+        BS
+    FROM 
+        [lib://Datamodelleren/99. Eindopdracht/99.  Eindopdracht.xlsx](ooxml, embedded labels, table is Omschr_Burg_Staat)
+    ;
+
+End Sub
 //	<--------------------------------------------------------------> || <-------------------------------------------------------------->
-//	-- Inladen kalender. Eis is 4 jaar historie
-Let vEindKalender							=		Num(Today());
-Let vStartKalender							=		Num(MakeDate(Year(Today())-4));
+Sub Kalender
 
-Kalender_TMP:
-  LOAD
-  	  DATE($(vStartKalender) + ROWNO() - 1)                           as TempDate
-  AUTOGENERATE
-  	  $(vEindKalender) - $(vStartKalender) + 1
-  ;	
+    //	-- Inladen kalender. Eis is 4 jaar historie
+    Let vEindKalender   =   Num(Today());
+    Let vStartKalender  =   Num(MakeDate(Year(Today())-4));
+
+    Kalender_TMP:
+    LOAD
+        DATE($(vStartKalender) + ROWNO() - 1)                            as TempDate
+    AUTOGENERATE
+        $(vEindKalender) - $(vStartKalender) + 1
+    ;	
 
 
-Kalender:
-  LOAD
-    TempDate 								                          as _Datum.KEY,
-    TempDate								                          as _Interval_Datum.KEY,
-    WEEK(TempDate) 							                          as Week,
-    YEAR(TempDate) 							                          as Jaar,
-    MONTH(TempDate) 						                          as Maand,
-    DAY(TempDate) 							                          as Dag,
-    WEEKDAY (TempDate) 						                          as Weekdag,
-    'Q' & CEIL(MONTH(TempDate) / 3) 		                          as Kwartaal,
-    DATE(MONTHSTART(TempDate), 'MMM-YYYY') 	                          as MaandJaar
-  RESIDENT 
-  	Kalender_TMP;
-  
-DROP TABLE Kalender_TMP;
-//	<--------------------------------------------------------------> || <-------------------------------------------------------------->
-Dienstverband_1_TEMP:
-LOAD
-    Afdeling														as _Afdeling.KEY,
-    Personeelsnummer												as _Medewerker.KEY,
-    Personeelsnummer												as [Personeelsnummer - DV 1],
-    Naam															as [Medewerker - Naam],
-    ApplyMap('ML_Burg_Staat', "Burgerlijke staat",'Geen waarde gevonden')
-    																as [Medewerker - Burgelijke staat],
-    ApplyMap('ML_Geslacht',Geslacht,'Onbekend')						as [Medewerker - Geslacht],
-    "Datum in dienst"												as _Datum.KEY,
-    "Datum in dienst"												as [Dienstverband - Indienstdatum],
-    If(Len("Datum uit dienst") < 1,
-    	Today(),
-        	"Datum uit dienst")										as [Dienstverband - Uitdienstdatum]
-FROM 
-	[lib://Datamodelleren/99. Eindopdracht/99.  Eindopdracht.xlsx](ooxml, embedded labels, table is Dienstverband_1)
-WHERE
-	Len(Personeelsnummer) >= 1
-AND
-	Num("Datum in dienst") >= Num($(vStartKalender))    
-;
-
-Dienstverband_2_TEMP:
-NoConcatenate
-LOAD
-    Afdeling														as _Afdeling.KEY,
-    Personeelsnummer												as _Medewerker.KEY,    
-    Naam															as [Medewerker - Naam],
-    ApplyMap('ML_Burg_Staat', "Burgerlijke staat",'Geen waarde gevonden')
-    																as [Medewerker - Burgelijke staat],
-    ApplyMap('ML_Geslacht',Geslacht,'Onbekend')						as [Medewerker - Geslacht],
-    "Datum in dienst"												as _Datum.KEY,
-    "Datum in dienst"												as [Dienstverband - Indienstdatum],
-    If(Len("Datum uit dienst") < 1,
-    	Today(),
-        	"Datum uit dienst")										as [Dienstverband - Uitdienstdatum]
-FROM 
-	[lib://Datamodelleren/99. Eindopdracht/99.  Eindopdracht.xlsx](ooxml, embedded labels, table is Dienstverband_2)
-WHERE 
-	NOT EXISTS([Personeelsnummer - DV 1],Personeelsnummer)
-AND
-	Len(Personeelsnummer) >= 1
-AND
-	Num("Datum in dienst") >= Num($(vStartKalender))
-;
+    Kalender:
+    LOAD
+        TempDate 								                          as _Datum.KEY,
+        TempDate								                          as _Interval_Datum.KEY,
+        WEEK(TempDate) 							                          as Week,
+        YEAR(TempDate) 							                          as Jaar,
+        MONTH(TempDate) 						                          as Maand,
+        DAY(TempDate) 							                          as Dag,
+        WEEKDAY (TempDate) 						                          as Weekdag,
+        'Q' & CEIL(MONTH(TempDate) / 3) 		                          as Kwartaal,
+        DATE(MONTHSTART(TempDate), 'MMM-YYYY') 	                          as MaandJaar
+    RESIDENT 
+        Kalender_TMP
+    ;
     
-//	-- Laten vallen controle veld voor de personeelsrecords
-DROP FIELD [Personeelsnummer - DV 1] FROM Dienstverband_1_TEMP;   
+    DROP TABLE Kalender_TMP;
 
-//	-- Opstellen complete diensterverband tabel
-Dienstverband_TEMP:
-	NOCONCATENATE
+End Sub
+//	<--------------------------------------------------------------> || <-------------------------------------------------------------->
+Sub Dienstverband
+
+    Dienstverband_1_TEMP:
     LOAD
-    	*
-    RESIDENT
-    	Dienstverband_1_TEMP;
+        Afdeling														as _Afdeling.KEY,
+        Personeelsnummer												as _Medewerker.KEY,
+        Personeelsnummer												as [Personeelsnummer - DV 1],
+        Naam															as [Medewerker - Naam],
+        ApplyMap('ML_Burg_Staat', "Burgerlijke staat",'Geen waarde gevonden')
+                                                                        as [Medewerker - Burgelijke staat],
+        ApplyMap('ML_Geslacht',Geslacht,'Onbekend')						as [Medewerker - Geslacht],
+        "Datum in dienst"												as _Datum.KEY,
+        "Datum in dienst"												as [Dienstverband - Indienstdatum],
+        If(Len("Datum uit dienst") < 1,
+            Today(),
+                "Datum uit dienst")										as [Dienstverband - Uitdienstdatum]
+    FROM 
+        [lib://Datamodelleren/99. Eindopdracht/99.  Eindopdracht.xlsx](ooxml, embedded labels, table is Dienstverband_1)
+    WHERE
+        Len(Personeelsnummer) >= 1
+    AND
+        Num("Datum in dienst") >= Num($(vStartKalender))    
+    ;
+
+    Dienstverband_2_TEMP:
+    NoConcatenate
+    LOAD
+        Afdeling														as _Afdeling.KEY,
+        Personeelsnummer												as _Medewerker.KEY,    
+        Naam															as [Medewerker - Naam],
+        ApplyMap('ML_Burg_Staat', "Burgerlijke staat",'Geen waarde gevonden')
+                                                                        as [Medewerker - Burgelijke staat],
+        ApplyMap('ML_Geslacht',Geslacht,'Onbekend')						as [Medewerker - Geslacht],
+        "Datum in dienst"												as _Datum.KEY,
+        "Datum in dienst"												as [Dienstverband - Indienstdatum],
+        If(Len("Datum uit dienst") < 1,
+            Today(),
+                "Datum uit dienst")										as [Dienstverband - Uitdienstdatum]
+    FROM 
+        [lib://Datamodelleren/99. Eindopdracht/99.  Eindopdracht.xlsx](ooxml, embedded labels, table is Dienstverband_2)
+    WHERE 
+        NOT EXISTS([Personeelsnummer - DV 1],Personeelsnummer)
+    AND
+        Len(Personeelsnummer) >= 1
+    AND
+        Num("Datum in dienst") >= Num($(vStartKalender))
+    ;
         
-Concatenate(Dienstverband_TEMP)
-	LOAD
-    	*
-    RESIDENT
-    	Dienstverband_2_TEMP;
+    //	-- Laten vallen controle veld voor de personeelsrecords
+    DROP FIELD [Personeelsnummer - DV 1] FROM Dienstverband_1_TEMP;   
 
-//	-- verwijderen eerste temp tabellen
-DROP TABLES Dienstverband_1_TEMP, Dienstverband_2_TEMP;
+    //	-- Opstellen complete diensterverband tabel
+    Dienstverband_TEMP:
+        NOCONCATENATE
+        LOAD
+            *
+        RESIDENT
+            Dienstverband_1_TEMP;
+            
+    Concatenate(Dienstverband_TEMP)
+        LOAD
+            *
+        RESIDENT
+            Dienstverband_2_TEMP;
 
-// Nog een keer inladen om een dienstverband key te maken.
-Dienstverband:
-	NoConcatenate
+    //	-- verwijderen eerste temp tabellen
+    DROP TABLES Dienstverband_1_TEMP, Dienstverband_2_TEMP;
+
+    // Nog een keer inladen om een dienstverband key te maken.
+    Dienstverband:
+        NoConcatenate
+        LOAD
+            RecNo()														as _Dienstverband.KEY,
+            *
+        RESIDENT
+            Dienstverband_TEMP;
+
+    //	-- verwijderen de tweede temp tabel
+    DROP TABLES Dienstverband_TEMP;
+
+End Sub
+//	<--------------------------------------------------------------> || <-------------------------------------------------------------->
+Sub Rooster
+
+    //	-- Klaar maken rooster tabel
+    Rooster_TEMP:
+    CrossTable([Rooster - Weekdag], [Rooster - Uren per Weekdag],1)		//	-- de laatste parameter is nodig om de contract gegevens niet in de veldwaarden te krijgen.
     LOAD
-    	RecNo()														as _Dienstverband.KEY,
-        *
-    RESIDENT
-    	Dienstverband_TEMP;
+    //     RecNo()															as _Rooster.KEY,
+        Soort															as _Rooster.KEY,
+        Maandag,
+        Dinsdag,
+        Woensdag,
+        Donderdag,
+        Vrijdag,
+        Zaterdag,
+        Zondag
+    FROM 
+        [lib://Datamodelleren/99. Eindopdracht/99.  Eindopdracht.xlsx](ooxml, embedded labels, table is Contractsoort)
+    ;
 
-//	-- verwijderen de tweede temp tabel
-DROP TABLES Dienstverband_TEMP;
+End Sub
 //	<--------------------------------------------------------------> || <-------------------------------------------------------------->
-//	-- Klaar maken rooster tabel
-Rooster_TEMP:
-CrossTable([Rooster - Weekdag], [Rooster - Uren per Weekdag],1)		//	-- de laatste parameter is nodig om de contract gegevens niet in de veldwaarden te krijgen.
-LOAD
-//     RecNo()															as _Rooster.KEY,
-    Soort															as _Rooster.KEY,
-    Maandag,
-    Dinsdag,
-    Woensdag,
-    Donderdag,
-    Vrijdag,
-    Zaterdag,
-    Zondag
-FROM 
-	[lib://Datamodelleren/99. Eindopdracht/99.  Eindopdracht.xlsx](ooxml, embedded labels, table is Contractsoort);
-//	<--------------------------------------------------------------> || <-------------------------------------------------------------->
+Sub Contracten
+
 //	-- Opstellen contract tabel met een combi sleutel naar rooster toe
 Contracten_TEMP:
 LOAD
@@ -180,84 +204,82 @@ Contracten_TEMP_2:
         															as _FEIT_RoosterUren.KEY,
         [Contract - Uren per dag]
     RESIDENT
-		Contracten_TEMP;
-//	<--------------------------------------------------------------> || <-------------------------------------------------------------->
-//	-- Opstellen feit tabel waarin de mededwerker  per dag in dienst staat geregistreerd
-FEIT_TEMP:	 
-    LOAD
-    	*,
-        If(Startdatum_TEMP + IterNo() - 1 = [Dienstverband - Indienstdatum],
-        	1,
-            	0)													as [# Feit - In dienst],
-    	If(Startdatum_TEMP + IterNo() - 1 = [Dienstverband - Uitdienstdatum],
-        	1,
-            	0)													as [# Feit - Uit dienst]
-    WHILE
-    	Startdatum_TEMP + IterNo() - 1 <= Einddatum_TEMP
-    ;    
-    
-    NoConcatenate
-    LOAD
-    	_Afdeling.KEY,
-        _Medewerker.KEY,
-        _Dienstverband.KEY,
-        _Datum.KEY,
-        [Dienstverband - Indienstdatum],
-        [Dienstverband - Uitdienstdatum],
-        If([Dienstverband - Indienstdatum] <= $(vStartKalender),
-        	$(vStartKalender),
-            	Floor([Dienstverband - Indienstdatum]))				as Startdatum_TEMP,
-        If([Dienstverband - Uitdienstdatum] > $(vEindKalender),
-        	$(vEindKalender),
-            	Floor([Dienstverband - Uitdienstdatum]))			as Einddatum_TEMP        
-    RESIDENT
-    	Dienstverband;
-        
-// Verwijderen Temp velden en sleutelvelden die overbodig zijn.
-Drop Fields Startdatum_TEMP, Einddatum_TEMP FROM FEIT_TEMP;
-Drop Fields _Afdeling.KEY, _Medewerker.KEY, _Datum.KEY, [Dienstverband - Uitdienstdatum], [Dienstverband - Indienstdatum] FROM Dienstverband;
-//	<--------------------------------------------------------------> || <-------------------------------------------------------------->
-//	-- Opstelen rooster uren per dag per medewerker
-FEIT_TEMP_2:
-	NoConcatenate
-    LOAD
-    	*,
-         Weekday(_Datum.KEY)										as [FEIT - Weekdag],
-        _Medewerker.KEY & '#' & Weekday(_Datum.KEY)
-        															as _FEIT_RoosterUren.KEY                                                                 
-    RESIDENT
-    	FEIT_TEMP;
-        
-LEFT JOIN(FEIT_TEMP_2)
-	LOAD
-    	_FEIT_RoosterUren.KEY,
-        [Contract - Uren per dag]									as [# FEIT - Roosteruren]
-     RESIDENT
-     	Contracten_TEMP_2;
-        
-DROP TABLE Contracten_TEMP_2;
-DROP TABLE FEIT_TEMP;
+		Contracten_TEMP
+    ;
 
-RENAME TABLE FEIT_TEMP_2 To FEIT;
-//	<--------------------------------------------------------------> || <--------------------------------------------------------------> 
-Exit script;        
+End Sub    
 //	<--------------------------------------------------------------> || <-------------------------------------------------------------->
-// Verzuim_TEMP:
-// LOAD
-//     Personeelsnummer,
-//     ID,
-//     "Eerste verzuimdag",
-//     "Laatste verzuimdag",
-//     Ziektepercentage
-// FROM [lib://Bron/99.  Eindopdracht.xlsx]
-// (ooxml, embedded labels, table is Verzuim);
-//
-// Organisatie_TEMP:
-// LOAD
-//     ID,
-//     Omschrijving,
-//     Moeder
-// FROM [lib://Bron/99.  Eindopdracht.xlsx]
-// (ooxml, embedded labels, table is Organisatie);
-// //	<--------------------------------------------------------------> || <-------------------------------------------------------------->
-// Exit script;
+Sub Feit
+
+    //	-- Opstellen feit tabel waarin de mededwerker  per dag in dienst staat geregistreerd
+    FEIT_TEMP:	 
+        LOAD
+            *,
+            If(Startdatum_TEMP + IterNo() - 1 = [Dienstverband - Indienstdatum],
+                1,
+                    0)													as [# Feit - In dienst],
+            If(Startdatum_TEMP + IterNo() - 1 = [Dienstverband - Uitdienstdatum],
+                1,
+                    0)													as [# Feit - Uit dienst]
+        WHILE
+            Startdatum_TEMP + IterNo() - 1 <= Einddatum_TEMP
+        ;    
+        
+        NoConcatenate
+        LOAD
+            _Afdeling.KEY,
+            _Medewerker.KEY,
+            _Dienstverband.KEY,
+            _Datum.KEY,
+            [Dienstverband - Indienstdatum],
+            [Dienstverband - Uitdienstdatum],
+            If([Dienstverband - Indienstdatum] <= $(vStartKalender),
+                $(vStartKalender),
+                    Floor([Dienstverband - Indienstdatum]))				as Startdatum_TEMP,
+            If([Dienstverband - Uitdienstdatum] > $(vEindKalender),
+                $(vEindKalender),
+                    Floor([Dienstverband - Uitdienstdatum]))			as Einddatum_TEMP        
+        RESIDENT
+            Dienstverband;
+            
+    // Verwijderen Temp velden en sleutelvelden die overbodig zijn.
+    Drop Fields Startdatum_TEMP, Einddatum_TEMP FROM FEIT_TEMP;
+    Drop Fields _Afdeling.KEY, _Medewerker.KEY, _Datum.KEY, [Dienstverband - Uitdienstdatum], [Dienstverband - Indienstdatum] FROM Dienstverband;
+    //	<--------------------------------------------------------------> || <-------------------------------------------------------------->
+    //	-- Opstelen rooster uren per dag per medewerker
+    FEIT_TEMP_2:
+        NoConcatenate
+        LOAD
+            *,
+            Weekday(_Datum.KEY)										as [FEIT - Weekdag],
+            _Medewerker.KEY & '#' & Weekday(_Datum.KEY)
+                                                                        as _FEIT_RoosterUren.KEY                                                                 
+        RESIDENT
+            FEIT_TEMP;
+            
+    LEFT JOIN(FEIT_TEMP_2)
+        LOAD
+            _FEIT_RoosterUren.KEY,
+            [Contract - Uren per dag]									as [# FEIT - Roosteruren]
+        RESIDENT
+            Contracten_TEMP_2;
+            
+    DROP TABLE Contracten_TEMP_2;
+    DROP TABLE FEIT_TEMP;
+
+    RENAME TABLE FEIT_TEMP_2 To FEIT;
+
+End Sub
+//	<--------------------------------------------------------------> || <--------------------------------------------------------------> 
+// Call van alle subroutines die gebruikt moeten worden
+
+    CALL Mapping_Loads
+    CALL Kalender
+    CALL Dienstverband
+    CALL Rooster
+    CALL Feit
+
+    // Ter controle wordt er een exit script uitgevoerd.
+    Exit script;
+
+//	<--------------------------------------------------------------> || <-------------------------------------------------------------->
